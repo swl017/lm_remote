@@ -36,7 +36,8 @@ def generate():
                     yield f"data: {decoded_line}\n\n"
                     app.logger.info(f"Sent line: {decoded_line}")
                 else:
-                    yield f"data: {{\"debug\": \"Empty line received\"}}\n\n"
+                    pass
+                    # yield f"data: {{\"debug\": \"Empty line received\"}}\n\n"
             
             yield f"data: {{\"debug\": \"Stream ended\"}}\n\n"
         except requests.RequestException as e:
