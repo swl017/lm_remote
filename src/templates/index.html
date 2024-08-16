@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LM Studio Interface</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        textarea { width: 100%; margin-bottom: 10px; }
+        #result { white-space: pre-wrap; background-color: #f0f0f0; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>LM Studio Interface</h1>
+    <textarea id="prompt" rows="4" placeholder="Enter your prompt here..."></textarea>
+    <br>
+    <button onclick="generateText()">Generate</button>
+    <h2>Generated Text:</h2>
+    <div id="result"></div>
+
+    <script>
+        function generateText() {
+            const prompt = document.getElementById('prompt').value;
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerText = 'Generating...';
+            
+            axios.post('/generate', { prompt: prompt })
+                .then(function (response) {
+                    resultDiv.innerText = response.data.generated_text;
+                })
+                .catch(function (error) {
+                    console.error('Error:', error);
+                    resultDiv.innerText = 'An error occurred while generating the text.';
+                });
+        }
+    </script>
+</body>
+</html>
