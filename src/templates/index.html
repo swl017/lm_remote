@@ -5,12 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LM Studio Interface</title>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
         textarea { width: 100%; margin-bottom: 10px; resize: vertical; min-height: 100px; max-height: 300px; }
         #result, #debug { white-space: pre-wrap; background-color: #f0f0f0; padding: 10px; border-radius: 5px; min-height: 100px; margin-top: 10px; }
         #modelInfo { margin-bottom: 10px; font-style: italic; }
         #status { font-weight: bold; margin-top: 10px; }
+        #copyButton { margin-left: 10px; }
     </style>
 </head>
 <body>
@@ -20,6 +23,7 @@
     <br>
     <button onclick="generateText()">Generate</button>
     <button id="stopButton" onclick="stopGeneration()" disabled>Stop Generation</button>
+    <button id="copyButton" onclick="copyResponse()" disabled>Copy Response</button>
     <div id="status"></div>
     <h2>Generated Text:</h2>
     <div id="result"></div>
@@ -28,6 +32,7 @@
 
     <script>
         let controller = null;
+        let fullResponse = '';
 
         function escapeHtml(unsafe) {
             return unsafe
@@ -47,6 +52,8 @@
             debugDiv.innerHTML = 'Debug info will appear here...';
             statusDiv.innerHTML = 'Generating...';
             document.getElementById('stopButton').disabled = false;
+            document.getElementById('copyButton').disabled = true;
+            fullResponse = '';
 
             controller = new AbortController();
             const signal = controller.signal;
@@ -77,37 +84,31 @@
                     }
                 });
             })
+            .then(stream => {
+                const reader = stream.getReader();
+                return new ReadableStream({
+                    start(controller) {
+                        function push() {
+                            reader.read().then(({ done, value }) => {
+                                if (done) {
+                                    controller.close();
+                                    return;
+                                }
+                                controller.enqueue(value);
+                                const chunk = new TextDecoder().decode(value);
+                                processChunk(chunk);
+                                push();
+                            });
+                        }
+                        push();
+                    }
+                });
+            })
             .then(stream => new Response(stream))
             .then(response => response.text())
             .then(data => {
                 debugDiv.innerHTML = `Raw response: ${escapeHtml(data)}`;
-                let generatedText = '';
-                const lines = data.split('\n');
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const content = line.slice(6).trim();  // Remove 'data: ' and trim
-                        if (content === '[DONE]') {
-                            debugDiv.innerHTML += '\nGeneration complete.';
-                            statusDiv.innerHTML = 'Generation complete.';
-                            continue;
-                        }
-                        try {
-                            const jsonData = JSON.parse(content);
-                            debugDiv.innerHTML += `\nParsed JSON: ${JSON.stringify(jsonData)}`;
-                            if (jsonData.choices && jsonData.choices[0].text) {
-                                generatedText += jsonData.choices[0].text;
-                            } else if (jsonData.debug) {
-                                debugDiv.innerHTML += `\nDebug: ${jsonData.debug}`;
-                            }
-                            if (jsonData.choices && jsonData.choices[0].finish_reason === "stop") {
-                                statusDiv.innerHTML = 'Generation complete.';
-                            }
-                        } catch (e) {
-                            debugDiv.innerHTML += `\nError parsing JSON: ${e}`;
-                        }
-                    }
-                }
-                resultDiv.innerHTML = escapeHtml(generatedText.trim());  // Trim to remove leading/trailing whitespace
+                updateResult();
             })
             .catch(error => {
                 if (error.name === 'AbortError') {
@@ -123,8 +124,41 @@
             })
             .finally(() => {
                 document.getElementById('stopButton').disabled = true;
+                document.getElementById('copyButton').disabled = false;
                 controller = null;
             });
+        }
+
+        function processChunk(chunk) {
+            const lines = chunk.split('\n');
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const content = line.slice(6).trim();  // Remove 'data: ' and trim
+                    if (content === '[DONE]') {
+                        document.getElementById('status').innerHTML = 'Generation complete.';
+                        return;
+                    }
+                    try {
+                        const jsonData = JSON.parse(content);
+                        if (jsonData.choices && jsonData.choices[0].text) {
+                            fullResponse += jsonData.choices[0].text;
+                            updateResult();
+                        } else if (jsonData.debug) {
+                            document.getElementById('debug').innerHTML += `\nDebug: ${jsonData.debug}`;
+                        }
+                        if (jsonData.choices && jsonData.choices[0].finish_reason === "stop") {
+                            document.getElementById('status').innerHTML = 'Generation complete.';
+                        }
+                    } catch (e) {
+                        document.getElementById('debug').innerHTML += `\nError parsing JSON: ${e}`;
+                    }
+                }
+            }
+        }
+
+        function updateResult() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = DOMPurify.sanitize(marked.parse(fullResponse.trim()));
         }
 
         function stopGeneration() {
@@ -132,6 +166,17 @@
                 controller.abort();
                 document.getElementById('stopButton').disabled = true;
             }
+        }
+
+        function copyResponse() {
+            navigator.clipboard.writeText(fullResponse.trim())
+                .then(() => {
+                    alert('Response copied to clipboard!');
+                })
+                .catch(err => {
+                    console.error('Failed to copy: ', err);
+                    alert('Failed to copy response. Please try again.');
+                });
         }
 
         // Fetch model information
