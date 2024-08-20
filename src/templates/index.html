@@ -17,8 +17,8 @@
     </style>
 </head>
 <body>
-    <h1>LM Studio Interface</h1>
-    <div id="modelInfo">Loading model information...</div>
+    <h1>LM Studio Local Server</h1>
+    <!-- <div id="modelInfo">Loading model information...</div> -->
     <textarea id="prompt" placeholder="Enter your prompt here..."></textarea>
     <br>
     <button onclick="generateText()">Generate</button>
@@ -180,15 +180,15 @@
         }
 
         // Fetch model information
-        fetch('/model_info')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('modelInfo').textContent = `Loaded model: ${data.model_name}`;
-            })
-            .catch(error => {
-                console.error('Error fetching model info:', error);
-                document.getElementById('modelInfo').textContent = 'Unable to fetch model information';
-            });
+        // fetch('/model_info')
+        //     .then(response => response.json())
+        //     .then(data => {
+        //         document.getElementById('modelInfo').textContent = `Loaded model: ${data.model_name}`;
+        //     })
+        //     .catch(error => {
+        //         console.error('Error fetching model info:', error);
+        //         document.getElementById('modelInfo').textContent = 'Unable to fetch model information';
+        //     });
     </script>
 </body>
 </html>

@@ -19,3 +19,11 @@ python3 app.py
 ```bash
 http://<ip-address>:5000
 ```
+
+## Run Proxy Server
+```bash
+python forward_connections.py --src-port 8889 --dst-ip <server-ip> --dst-port 8889
+```
+
+## Browser Access
+[my_url.com:8889]()
