@@ -1,12 +1,23 @@
 # LM_REMOTE
-Local LLM chatbot web interface using Python backend.
+Local LLM chatbot web interface using `chainlit`.
 
+# Chainlit Integration
 ## Python Dependencies
-- `flask`
-- `requests`
+- `chainlit`
+- `openai`
 ```bash
 pip3 install -r requirements.txt
 ```
+
+## Run Chainlit
+```bash
+chainlit run app_chainlit.py -w --host <ip-address> --port <port>
+```
+
+# Stock Implementation
+## Python Dependencies
+- `flask`
+- `requests`
 
 ## Run Server
 After starting a local server, e.g. using LM Studio, run
